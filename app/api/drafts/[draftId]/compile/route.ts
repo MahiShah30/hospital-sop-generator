@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyIdToken, getAdminDb } from "../../../../../src/server/firebaseAdmin";
 import { createClient } from '@supabase/supabase-js';
+import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
 export async function POST(request: Request, { params }: { params: { draftId: string } }) {
@@ -25,9 +26,12 @@ export async function POST(request: Request, { params }: { params: { draftId: st
 
     // 2) Render PDF with puppeteer (assumes chromium available in env; for local dev use installed Chrome path)
     const browser = await puppeteer.launch({
-      headless: 'new',
-      executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe'
-    } as any);
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
+    });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
     const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
