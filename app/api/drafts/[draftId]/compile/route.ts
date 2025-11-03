@@ -27,9 +27,7 @@ export async function POST(request: Request, { params }: { params: { draftId: st
     // 2) Render PDF with puppeteer (assumes chromium available in env; for local dev use installed Chrome path)
     const browser = await puppeteer.launch({
       args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
       ignoreHTTPSErrors: true,
     });
     const page = await browser.newPage();
