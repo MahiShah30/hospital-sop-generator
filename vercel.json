@@ -1,6 +1,6 @@
 {
   "functions": {
-    "app/api/drafts/[draftId]/compile/route.js": {
+    "app/api/**": {
       "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
     }
   }

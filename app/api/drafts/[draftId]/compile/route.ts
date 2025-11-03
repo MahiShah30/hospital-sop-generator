@@ -28,7 +28,6 @@ export async function POST(request: Request, { params }: { params: { draftId: st
     const browser = await puppeteer.launch({
       args: chromium.args,
       executablePath: process.env.NODE_ENV === 'production' ? await chromium.executablePath() : 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-      ignoreHTTPSErrors: true,
     });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
