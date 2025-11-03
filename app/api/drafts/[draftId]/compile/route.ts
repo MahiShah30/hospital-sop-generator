@@ -27,7 +27,7 @@ export async function POST(request: Request, { params }: { params: { draftId: st
     // 2) Render PDF with puppeteer (assumes chromium available in env; for local dev use installed Chrome path)
     const browser = await puppeteer.launch({
       args: chromium.args,
-      executablePath: await chromium.executablePath(),
+      executablePath: process.env.NODE_ENV === 'production' ? await chromium.executablePath() : 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
       ignoreHTTPSErrors: true,
     });
     const page = await browser.newPage();
@@ -51,7 +51,7 @@ export async function POST(request: Request, { params }: { params: { draftId: st
     return NextResponse.json({ url: signed.signedUrl, path: key });
   } catch (e) {
     console.error("Error in compile route:", e.message);
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: e.message || "unauthorized" }, { status: 401 });
   }
 }
 
