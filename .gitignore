@@ -1,0 +1,20 @@
+# Dependencies
+/node_modules
+
+# Next.js build files
+/.next/
+
+# Production build files
+/out/
+
+# Local environment variables
+# This is the most important line for security!
+*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test files
+/coverage

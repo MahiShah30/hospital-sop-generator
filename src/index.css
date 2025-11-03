@@ -1,0 +1,12 @@
+/* src/index.css - Tailwind entry file */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* small page-level override so background looks nicer while you build */
+html,body,#root { height: 100%; }
+body {
+  @apply bg-white;
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}

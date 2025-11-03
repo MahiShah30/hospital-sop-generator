@@ -1,0 +1,18 @@
+{
+  // Disable false Tailwind errors in VS Code
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
+
+  // (Optional) Enable Tailwind IntelliSense if installed
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "tailwindCSS.includeLanguages": {
+    "plaintext": "html",
+    "javascript": "javascriptreact",
+    "typescript": "typescriptreact"
+  },
+  "tailwindCSS.emmetCompletions": true,
+  "editor.suggestSelection": "first"
+}
