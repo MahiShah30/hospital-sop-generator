@@ -4,6 +4,13 @@ import { createClient } from '@supabase/supabase-js';
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
+// Helper to get signed URL for a storage path
+async function getSignedUrl(supabase: any, path: string) {
+  const { data, error } = await supabase.storage.from('sop-files').createSignedUrl(path, 3600); // 1 hour expiry
+  if (error) throw error;
+  return data.signedUrl;
+}
+
 export async function POST(request: Request, { params }: { params: { draftId: string } }) {
 
   console.log("SERVER CHECK: Project ID is:", process.env.FIREBASE_PROJECT_ID);
@@ -22,7 +29,7 @@ export async function POST(request: Request, { params }: { params: { draftId: st
     sectionsSnap.forEach(doc => { sections[doc.id] = doc.data(); });
 
     // 1) Build HTML from sections (very simple stub; can be themed)
-    const html = buildHtmlFromSections(draftSnap.data() as any, sections);
+    const html = await buildHtmlFromSections(draftSnap.data() as any, sections);
 
     // 2) Render PDF with puppeteer (assumes chromium available in env; for local dev use installed Chrome path)
     const browser = await puppeteer.launch({
@@ -65,8 +72,10 @@ function esc(str: string) {
   return String(str ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
 }
 
-function buildHtmlFromSections(draft: any, sections: Record<string, any>) {
-  const title = esc(draft?.title || 'Standard Operating Procedure');
+async function buildHtmlFromSections(draft: any, sections: Record<string, any>) {
+  // Get title from document-metadata section if available, else fallback
+  const docMeta = sections['document-metadata']?.answers || {};
+  const title = esc(docMeta.sopTitle || (draft?.title && draft.title !== 'Untitled SOP' ? draft.title : 'Standard Operating Procedure'));
   let body = `<h1>${title}</h1>`;
   const keys = Object.keys(sections);
 
@@ -86,6 +95,9 @@ function buildHtmlFromSections(draft: any, sections: Record<string, any>) {
     'summary-closure': 'Summary & Closure'
   };
 
+  // Create supabase client for file URLs
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL as string, process.env.SUPABASE_SERVICE_ROLE as string, { auth: { persistSession: false } });
+
   for (const k of keys) {
     // Skip excluded sections
     if (excludedSections.includes(k)) continue;
@@ -94,7 +106,7 @@ function buildHtmlFromSections(draft: any, sections: Record<string, any>) {
     const sectionTitle = sectionTitleMap[k] || sec?.title || k.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     body += `<h2>${esc(sectionTitle)}</h2>`;
     const answers = sec?.answers || {};
-    body += renderSectionContent(k, answers);
+    body += await renderSectionContent(k, answers, supabase);
   }
   return `<!doctype html><html><head><meta charset="utf-8"/><style>
     body { font-family: Arial, sans-serif; padding: 24px; line-height: 1.6; }
@@ -115,7 +127,7 @@ function buildHtmlFromSections(draft: any, sections: Record<string, any>) {
   </style></head><body>${body}</body></html>`;
 }
 
-function renderSectionContent(sectionKey: string, answers: any) {
+async function renderSectionContent(sectionKey: string, answers: any, supabase: any) {
   let content = '';
   for (const [fieldName, value] of Object.entries(answers)) {
     if (value === null || value === undefined || value === '') continue;
@@ -135,6 +147,14 @@ function renderSectionContent(sectionKey: string, answers: any) {
       } else {
         // Simple array - render as list
         content += '<ul>' + value.map(v => `<li>${esc(String(v))}</li>`).join('') + '</ul>';
+      }
+    } else if (typeof value === 'object' && (value as any).storagePath) {
+      // File upload - render as image if it's an image, else as link
+      const signedUrl = await getSignedUrl(supabase, (value as any).storagePath);
+      if ((value as any).contentType && (value as any).contentType.startsWith('image/')) {
+        content += ` <img src="${esc(signedUrl)}" alt="${esc((value as any).name || 'Uploaded file')}" style="max-width: 200px; max-height: 200px;" />`;
+      } else {
+        content += ` <a href="${esc(signedUrl)}" target="_blank">${esc((value as any).name || 'Download file')}</a>`;
       }
     } else if (typeof value === 'object') {
       // Object - render as key-value pairs
